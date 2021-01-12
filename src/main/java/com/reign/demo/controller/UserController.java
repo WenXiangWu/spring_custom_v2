@@ -25,7 +25,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @RequestMapping("/getUserName")
+    @RequestMapping("/getUserName*")
     public String getUserName(HttpServletRequest req, HttpServletResponse resp, @RequestParam("userName") String userName){
         return userService.getUserName(userName);
     }

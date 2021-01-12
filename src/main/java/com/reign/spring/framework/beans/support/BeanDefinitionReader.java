@@ -37,6 +37,15 @@ public class BeanDefinitionReader {
         loadBeanDifinitions();
     }
 
+
+    public Properties getConfigProperties() {
+        return configProperties;
+    }
+
+    public void setConfigProperties(Properties configProperties) {
+        this.configProperties = configProperties;
+    }
+
     private void doLoadConfig(String configLocation) {
         InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(configLocation.replaceAll("classpath:", ""));
         try {

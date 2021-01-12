@@ -49,12 +49,6 @@ public class ApplicationContext {
     }
 
     private void doAutowired() {
-        //调用getBean
-        //这里所有的bean还没有真正的实例化，仍然是配置阶段
-        for (Map.Entry<String, BeanDefinition> beanDefinitionEntry : beanDefinitionMap.entrySet()) {
-            String beanName = beanDefinitionEntry.getKey();
-
-        }
     }
 
     private void doRegisterBeanDefinition(List<BeanDefinition> beanDefinitionList) {
@@ -195,5 +189,10 @@ public class ApplicationContext {
 
     public Set<String> getBeanDefinitionNames() {
         return this.beanDefinitionMap.keySet();
+    }
+
+
+    public Properties getConfig() {
+        return this.reader.getConfigProperties();
     }
 }

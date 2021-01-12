@@ -4,10 +4,16 @@
 	<classpath>
 		<dir name="F:/&#35270;&#39057;&#25945;&#31243;/gupaoedu-vip-spring-1.0/spring_custom_v2/target/spring_custom_v2/WEB-INF/classes">
 			<include name="application.properties"/>
+			<include name="layouts/404.html"/>
+			<include name="layouts/500.html"/>
+			<include name="layouts/first.html"/>
 			<include name="webdefault.xml"/>
 		</dir>
 		<dir name="F:/&#35270;&#39057;&#25945;&#31243;/gupaoedu-vip-spring-1.0/spring_custom_v2/target/spring_custom_v2/WEB-INF/classes">
 			<include name="application.properties"/>
+			<include name="layouts/404.html"/>
+			<include name="layouts/500.html"/>
+			<include name="layouts/first.html"/>
 			<include name="webdefault.xml"/>
 		</dir>
 		<dir name="F:/&#35270;&#39057;&#25945;&#31243;/gupaoedu-vip-spring-1.0/spring_custom_v2/src/main/resources">
