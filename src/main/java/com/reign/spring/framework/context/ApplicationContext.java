@@ -32,8 +32,6 @@ public class ApplicationContext {
     //TODO 双缓存解决循环依赖问题 key:field名称 value：尚未组装好的BeanWrapper
     private Map<String, Set<BeanWrapper>> firstCache = new HashMap<String, Set<BeanWrapper>>();
 
-    private Map<String, Object> secondCache = new HashMap<String, Object>();
-
     /**
      * 通过配置文件进行初始化
      *
