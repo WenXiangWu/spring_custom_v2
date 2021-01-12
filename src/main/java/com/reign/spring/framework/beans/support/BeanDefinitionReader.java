@@ -60,7 +60,7 @@ public class BeanDefinitionReader {
 
                 // 3.接口注入
                 for (Class<?> i:clazz.getInterfaces()){
-                    result.add(doCreateBeanDefinition(i.getName(),clazz.getName()));
+                    result.add(doCreateBeanDefinition(toLowerFirstCase(i.getSimpleName()),clazz.getName()));
                 }
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();

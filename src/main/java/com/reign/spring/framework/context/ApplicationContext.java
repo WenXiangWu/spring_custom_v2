@@ -6,10 +6,9 @@ import com.reign.spring.framework.annotation.Service;
 import com.reign.spring.framework.beans.BeanWrapper;
 import com.reign.spring.framework.beans.config.BeanDefinition;
 import com.reign.spring.framework.beans.support.BeanDefinitionReader;
+
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @ClassName ApplicationContext
@@ -20,9 +19,7 @@ import java.util.Map;
  **/
 public class ApplicationContext {
 
-
     private BeanDefinitionReader reader;
-
 
     private Map<String, BeanDefinition> beanDefinitionMap = new HashMap<String, BeanDefinition>();
 
@@ -31,6 +28,11 @@ public class ApplicationContext {
 
     //保存原始对象
     private Map<String, Object> factoryBeanObjectCache = new HashMap<String, Object>();
+
+    //TODO 双缓存解决循环依赖问题 key:field名称 value：尚未组装好的BeanWrapper
+    private Map<String, Set<BeanWrapper>> firstCache = new HashMap<String, Set<BeanWrapper>>();
+
+    private Map<String, Object> secondCache = new HashMap<String, Object>();
 
     /**
      * 通过配置文件进行初始化
@@ -59,8 +61,8 @@ public class ApplicationContext {
 
     private void doRegisterBeanDefinition(List<BeanDefinition> beanDefinitionList) {
         for (BeanDefinition beanDefinition : beanDefinitionList) {
-            if (beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName()))
-                throw new IllegalArgumentException("The bean " + beanDefinition.getFactoryBeanName() + " already exist");
+            if (beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName())) continue;
+            //throw new IllegalArgumentException("The bean " + beanDefinition.getFactoryBeanName() + " already exist");
             beanDefinitionMap.put(beanDefinition.getFactoryBeanName(), beanDefinition);
             beanDefinitionMap.put(beanDefinition.getBeanClassName(), beanDefinition);
         }
@@ -73,17 +75,26 @@ public class ApplicationContext {
      * @return
      */
     public Object getBean(String beanName) {
-        //1.先拿到BeanDefinition配置信息
-        BeanDefinition beanDefinition = this.beanDefinitionMap.get(beanName);
-        //2,反射实例化
-        Object instance = instantiateBean(beanName, beanDefinition);
-        //3.构造wrapper对象
-        BeanWrapper beanWrapper = new BeanWrapper(instance);
-        //4.保存到IOC容器
-        factoryBeanInstanceCache.put(beanName, beanWrapper);
-        //5.DI
-        populateBean(beanName, beanDefinition, beanWrapper);
-        return beanWrapper.getWrapperInstance();
+        Object result = null;
+        BeanWrapper beanWrapper = factoryBeanInstanceCache.get(beanName);
+        if (beanWrapper != null) {
+            result = beanWrapper.getWrapperInstance();
+        } else {
+            //1.先拿到BeanDefinition配置信息
+            BeanDefinition beanDefinition = this.beanDefinitionMap.get(beanName);
+            result = factoryBeanObjectCache.get(beanName);
+            if (result == null) {
+                //2,反射实例化
+                result = instantiateBean(beanName, beanDefinition);
+                //3.构造wrapper对象
+                beanWrapper = new BeanWrapper(result);
+                //4.保存到IOC容器
+                factoryBeanInstanceCache.put(beanName, beanWrapper);
+                //5.DI
+                populateBean(beanName, beanDefinition, beanWrapper);
+            }
+        }
+        return result;
     }
 
     /**
@@ -112,8 +123,20 @@ public class ApplicationContext {
                 Autowired autowired = field.getAnnotation(Autowired.class);
                 //这边默认注入的参数首字母小写 FIXME
                 String autowiredBeanName = autowired.value().trim();
-                if (beanName.equals("")) autowiredBeanName = field.getName();
-                if (factoryBeanInstanceCache.get(autowiredBeanName) == null) continue;
+                if (autowiredBeanName.equals("")) autowiredBeanName = field.getName();
+                if (factoryBeanInstanceCache.get(autowiredBeanName) == null) {
+                    Set<BeanWrapper> obj = null;
+                    //直接存储全路径名
+                    String interfaceName = toLowerFirstCase(field.getType().getSimpleName());
+                    if (!firstCache.containsKey(interfaceName)) {
+                        obj = new HashSet<BeanWrapper>();
+                    } else {
+                        obj = firstCache.get(interfaceName);
+                    }
+                    obj.add(beanWrapper);
+                    firstCache.put(interfaceName, obj);
+                    continue;
+                }
                 field.set(instance, factoryBeanInstanceCache.get(autowiredBeanName).getWrapperInstance());
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
@@ -121,7 +144,11 @@ public class ApplicationContext {
             }
         }
     }
-
+    public String toLowerFirstCase(String className) {
+        char[] chars = className.toCharArray();
+        chars[0] += 32;
+        return String.valueOf(chars);
+    }
     /**
      * 创建真正的实例对象，没有做DI
      *
@@ -130,11 +157,26 @@ public class ApplicationContext {
      * @return
      */
     private Object instantiateBean(String beanName, BeanDefinition beanDefinition) {
-        Object instance = null;
+        Object instance = factoryBeanObjectCache.get(beanName);
         try {
-            Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
-            instance = clazz.newInstance();
-            factoryBeanObjectCache.put(beanName, instance);
+            if (instance == null) {
+                Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
+                instance = clazz.newInstance();
+                factoryBeanObjectCache.put(beanName, instance);
+            }
+            //实例化好之后去填充之前循环依赖没有的对象；
+            Set<BeanWrapper> beanWrappers = firstCache.get(beanDefinition.getFactoryBeanName());
+            if (beanWrappers != null && beanWrappers.size() > 0) {
+                for (BeanWrapper beanWrapper : beanWrappers) {
+                    Object o = beanWrapper.getWrapperInstance();
+                    for (Field field : o.getClass().getDeclaredFields()) {
+                        if (field.getName().equals(beanDefinition.getFactoryBeanName())) {
+                            field.setAccessible(true);
+                            field.set(o, instance);
+                        }
+                    }
+                }
+            }
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
@@ -149,4 +191,11 @@ public class ApplicationContext {
         return getBean(clazz.getName());
     }
 
+    public int getBeanDefinitionCount() {
+        return beanDefinitionMap.size();
+    }
+
+    public Set<String> getBeanDefinitionNames() {
+        return this.beanDefinitionMap.keySet();
+    }
 }

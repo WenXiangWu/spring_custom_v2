@@ -41,6 +41,8 @@ public class DispatcherServlet extends HttpServlet {
 
     private List<Handler> handlerList = new ArrayList<Handler>();
 
+    private ApplicationContext applicationContext;
+
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -147,8 +149,7 @@ public class DispatcherServlet extends HttpServlet {
     @Override
     public void init(ServletConfig config) throws ServletException {
         System.out.println("初始化IOC容器");
-        ApplicationContext applicationContext = new ApplicationContext(config.getInitParameter("contextConfigLocation"));
-
+        applicationContext = new ApplicationContext(config.getInitParameter("contextConfigLocation"));
         //4.初始化HandlerMapping，将URL与对应处理的Method进行绑定；
         initHandlerMapping();
 
@@ -156,18 +157,17 @@ public class DispatcherServlet extends HttpServlet {
 
     //初始化url和Method的一对一对应关系
     private void initHandlerMapping() {
-        if (iocMap.isEmpty()) {
+        if (applicationContext.getBeanDefinitionCount() == 0) {
             return;
         }
-
-        for (Map.Entry<String, Object> entry : iocMap.entrySet()) {
-            Class<?> clazz = entry.getValue().getClass();
-
+        for (String beanName : applicationContext.getBeanDefinitionNames()) {
+            //接口不可实例化
+            Object instance = applicationContext.getBean(beanName);
+            if (instance == null) continue;
+            Class<?> clazz = instance.getClass();
             if (!clazz.isAnnotationPresent(Controller.class)) {
                 continue;
             }
-
-
             //保存写在类上面的@GPRequestMapping("/demo")
             String baseUrl = "";
             if (clazz.isAnnotationPresent(RequestMapping.class)) {
@@ -176,7 +176,7 @@ public class DispatcherServlet extends HttpServlet {
             }
 
             //默认获取所有的public方法
-            for (Method method : clazz.getMethods()) {
+            for (Method method : clazz.getDeclaredMethods()) {
                 if (!method.isAnnotationPresent(RequestMapping.class)) {
                     continue;
                 }
@@ -187,13 +187,11 @@ public class DispatcherServlet extends HttpServlet {
                 String regex = ("/" + baseUrl + "/" + requestMapping.value())
                         .replaceAll("/+", "/");
                 Pattern pattern = Pattern.compile(regex);
-                this.handlerList.add(new Handler(pattern, entry.getValue(), method));
+                this.handlerList.add(new Handler(pattern, applicationContext.getBean(beanName), method));
 //                handlerMapping.put(url,method);
                 System.out.println("Mapped :" + pattern + "," + method);
 
             }
-
-
         }
 
 
@@ -227,7 +225,6 @@ public class DispatcherServlet extends HttpServlet {
             }
         }
     }
-
 
 
     //保存一个url和一个Method的关系
