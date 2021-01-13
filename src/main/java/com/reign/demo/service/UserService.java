@@ -1,5 +1,7 @@
 package com.reign.demo.service;
 
+import com.reign.spring.framework.webmvc.servlet.ModelAndView;
+
 /**
  * @ClassName UserService
  * @Description TODO
@@ -8,5 +10,5 @@ package com.reign.demo.service;
  * @Version 1.0
  **/
 public interface UserService {
-    String getUserName(String name);
+    ModelAndView getUserName(String name);
 }

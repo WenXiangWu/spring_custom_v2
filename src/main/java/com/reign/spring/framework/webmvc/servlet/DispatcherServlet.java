@@ -169,7 +169,19 @@ public class DispatcherServlet extends HttpServlet {
         if (null == modelAndView) {
             return;
         }
-        if (this.viewResolvers.isEmpty()) {
+        if (this.viewResolvers.isEmpty()|| modelAndView.getViewName() == null || modelAndView.getViewName().equals("")) {
+            try {
+                Map<String,?> model = modelAndView.getModel();
+                StringBuilder sb = new StringBuilder();
+                sb.append("result:");
+
+                for (Map.Entry<String,?> entry:model.entrySet()){
+                    sb.append(entry.getKey()).append("_").append(entry.getValue());
+                }
+                resp.getWriter().write(sb.toString());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return;
         }
 

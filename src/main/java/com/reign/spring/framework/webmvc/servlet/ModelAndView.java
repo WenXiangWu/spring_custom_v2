@@ -24,6 +24,13 @@ public class ModelAndView {
         this.viewName = viewName;
     }
 
+    public ModelAndView(Map<String, ?> model) {
+        this.model = model;
+    }
+
+    public ModelAndView() {
+    }
+
     public String getViewName() {
         return viewName;
     }

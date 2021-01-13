@@ -7,6 +7,7 @@ import com.reign.spring.framework.annotation.Autowired;
 import com.reign.spring.framework.annotation.Controller;
 import com.reign.spring.framework.annotation.RequestMapping;
 import com.reign.spring.framework.annotation.RequestParam;
+import com.reign.spring.framework.webmvc.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,7 +27,7 @@ public class UserController {
     private UserService userService;
 
     @RequestMapping("/getUserName*")
-    public String getUserName(HttpServletRequest req, HttpServletResponse resp, @RequestParam("userName") String userName){
+    public ModelAndView getUserName(HttpServletRequest req, HttpServletResponse resp, @RequestParam("userName") String userName){
         return userService.getUserName(userName);
     }
 
