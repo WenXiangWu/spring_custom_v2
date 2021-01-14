@@ -49,4 +49,13 @@ public class Order {
 
     public Order() {
     }
+
+    @Override
+    public String toString() {
+        return "Order{" +
+                "orderId=" + orderId +
+                ", create_time=" + create_time +
+                ", price=" + price +
+                '}';
+    }
 }

@@ -45,7 +45,7 @@ public class AdvisedSupport {
 
 
         //保存专门匹配Class的正则
-        String pointCutForClassRegex = pointCut.substring(0, pointCut.lastIndexOf("\\(") - 4);
+        String pointCutForClassRegex = pointCut.substring(0, pointCut.lastIndexOf("\\(") );
         pointCutClassPattern = Pattern.compile("class " + pointCutForClassRegex.substring(pointCutForClassRegex.lastIndexOf(" ") + 1));
 
 

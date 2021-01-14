@@ -22,6 +22,11 @@
             <version>${servlet.api.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+            <version>3.3.0</version>
+        </dependency>
         <!-- requied end -->
 
     </dependencies>

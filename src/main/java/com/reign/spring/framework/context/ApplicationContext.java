@@ -4,12 +4,15 @@ import com.reign.spring.framework.annotation.Autowired;
 import com.reign.spring.framework.annotation.Controller;
 import com.reign.spring.framework.annotation.Service;
 import com.reign.spring.framework.aop.config.AopConfig;
+import com.reign.spring.framework.aop.proxy.AopProxyEnum;
+import com.reign.spring.framework.aop.proxy.CglibAopProxy;
 import com.reign.spring.framework.aop.proxy.JdkDynamicAopProxy;
 import com.reign.spring.framework.aop.support.AdvisedSupport;
 import com.reign.spring.framework.beans.BeanWrapper;
 import com.reign.spring.framework.beans.config.BeanDefinition;
 import com.reign.spring.framework.beans.support.BeanDefinitionReader;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -35,6 +38,8 @@ public class ApplicationContext {
     //TODO 双缓存解决循环依赖问题 key:field名称 value：尚未组装好的BeanWrapper
     private Map<String, Set<BeanWrapper>> firstCache = new HashMap<String, Set<BeanWrapper>>();
 
+
+    private Class<?> proxyClass;
     /**
      * 通过配置文件进行初始化
      *
@@ -43,6 +48,10 @@ public class ApplicationContext {
     public ApplicationContext(String... configLocations) {
         //1.读取配置文件
         reader = new BeanDefinitionReader(configLocations);
+        //获取对象的代理模式
+        String proxyType = reader.getConfigProperties().getProperty("proxyType");
+        proxyClass= AopProxyEnum.getClassByProxyType(proxyType);
+
         //2.解析配置文件，封装成beanDefinition
         List<BeanDefinition> beanDefinitionList = reader.loadBeanDifinitions();
         //3.缓存BeanDefinition
@@ -139,11 +148,13 @@ public class ApplicationContext {
             }
         }
     }
+
     public String toLowerFirstCase(String className) {
         char[] chars = className.toCharArray();
         chars[0] += 32;
         return String.valueOf(chars);
     }
+
     /**
      * 创建真正的实例对象，没有做DI
      *
@@ -157,15 +168,24 @@ public class ApplicationContext {
             if (instance == null) {
                 Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
                 instance = clazz.newInstance();
-                //TODO 简单做aop
+
+                // 简单做aop
                 AdvisedSupport advisedSupport = instantionAopConfig(beanDefinition);
                 advisedSupport.setTarget(instance);
                 advisedSupport.setTargetClass(clazz);
                 //判断规则是否要生成代理类，如果要则覆盖原生对象
-                if(advisedSupport.pointCutMath()){
-                    instance = new JdkDynamicAopProxy(advisedSupport).getProxy();
+                if (advisedSupport.pointCutMath()) {
+                    System.out.println("对" + advisedSupport.getTargetClass() + "做了aop增强");
+                    //JDK动态代理
+                   if (proxyClass.getName().equals(CglibAopProxy.class.getName()) ){
+                       instance = new CglibAopProxy(advisedSupport).getProxy();
+                   }else {
+                       instance = new JdkDynamicAopProxy(advisedSupport).getProxy();
+                   }
                 }
-                //TODO aop结束
+                // aop结束
+
+
                 factoryBeanObjectCache.put(beanName, instance);
             }
             //实例化好之后去填充之前循环依赖没有的对象；
